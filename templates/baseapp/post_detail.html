@@ -1,0 +1,78 @@
+{% extends 'baseapp/base.html' %}
+
+{% block title %}{{ Post.title }} - My Blog{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <article class="card mb-4">
+            <div class="card-body">
+                <h1 class="card-title mb-3">{{ Post.title }}</h1>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="text-muted">
+                        <i class="fas fa-user"></i> {{ Post.author.username }}
+                        <span class="mx-2">|</span>
+                        <i class="fas fa-calendar"></i> {{ Post.created_at|date:"F j, Y" }}
+                    </div>
+                    {% if user.is_authenticated and user == Post.author %}
+                    <div class="btn-group">
+                        <a href="{% url 'update_post' Post.slug %}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-edit"></i> Edit
+                        </a>
+                        <button onclick="deletePost('{{ Post.slug }}')" class="btn btn-outline-danger btn-sm">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+                <hr>
+                <div class="post-content">
+                    {{ Post.content|linebreaks }}
+                </div>
+            </div>
+        </article>
+
+        <div class="d-flex justify-content-between mb-4">
+            <a href="{% url 'post_list' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Back to All Posts
+            </a>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    async function deletePost(slug) {
+        const confirmDelete = confirm("Are you sure you want to delete this post? This action cannot be undone.");
+        if (!confirmDelete) return;
+
+        try {
+            const token = localStorage.getItem("access");
+            if (!token) {
+                alert("Please login to delete posts.");
+                window.location.href = "{% url 'login' %}";
+                return;
+            }
+
+            const res = await fetch(`/post_delete_api/${slug}/`, {
+                method: "DELETE",
+                headers: {
+                    "Authorization": `Bearer ${token}`,
+                    "Content-Type": "application/json"
+                }
+            });
+
+            if (res.ok) {
+                alert("Post deleted successfully!");
+                window.location.href = "{% url 'post_list' %}";
+            } else {
+                const data = await res.json();
+                throw new Error(data.error || "Error deleting post");
+            }
+        } catch (error) {
+            alert(error.message);
+        }
+    }
+</script>
+{% endblock %}
+{% endblock %} 
